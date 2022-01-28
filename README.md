@@ -12,7 +12,8 @@ author: "Chelsea Harmon, Emma Routhier, Hannah Dunn, Sophia Golden, Sarah Marcot
 date: "July 1, 2020" 
 output: html_document:
 
-```{r, echo=F, include=F, eval=F, warning=F}
+```.r
+#```{r, echo=F, include=F, eval=F, warning=F}
 knitr::opts_chunk$set(echo = TRUE)
 #library(papaja)
 require(ggplot2)
@@ -285,7 +286,8 @@ Figure 2B. Testing phase. After conditioning, children were then brought to a pl
  
 
 #Questionnaire data - Study 1 
-```{r, echo=F, include=F, eval=F, warning=F}
+```.r
+#```{r, echo=F, include=F, eval=F, warning=F}
 
 quest <- read.csv("questionnaire_dataStudy1_8.8.20.csv")
 length(quest$Participant)
