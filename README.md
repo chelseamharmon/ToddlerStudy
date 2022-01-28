@@ -1,5 +1,5 @@
 # ToddlerStudy
-Study examining Classical Conditioning Reward Learning in the presence versus absence of a parent. Collaboration with Barnard Toddler Center 
+Within subject study design examining Classical Conditioning Reward Learning in the presence versus absence of a parent (N = 145). Collaboration with Barnard Toddler Center 
 
 See figures file: figures01.20.2022.pptx
 
