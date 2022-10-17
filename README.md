@@ -1391,9 +1391,9 @@ inv.logit(coef(summary(study1_m1.71)))
 inv.logit(coef(summary(study1_m1.72)))
 ```
 
-#also found in RewardLearningAnalysesExploration1.18.2022.Rmd 
-##Reviewer's reqeuest 
-```{r}
+#also found in RewardLearningAnalysesExploration1.18.2022.Rmd - Reviewer's request 
+```.r
+#```{r}
 
 #Adding Mother's Lap and Switching as potential confounds 
 ```{r}
@@ -1555,7 +1555,8 @@ coef(summary(study1_m1.5))
 ```
 
 
-```{r}
+```.r
+#```{r}
 ########################## Study 2 
 
 study2_long <- gather(study2, key="Trial", value="Score", COND1_1:COND2_5)
@@ -1737,6 +1738,4 @@ inv.logit(0.91318) #gender
 
 ```
 
-
-```
 
