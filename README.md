@@ -1389,3 +1389,354 @@ study1_m1.72 <- glmer(Score~type +
 
 inv.logit(coef(summary(study1_m1.71)))
 inv.logit(coef(summary(study1_m1.72)))
+```
+
+#also found in RewardLearningAnalysesExploration1.18.2022.Rmd 
+##Reviewer's reqeuest 
+```{r}
+
+#Adding Mother's Lap and Switching as potential confounds 
+```{r}
+data <- read.csv("Toddler_HT_DataEntryMaster_09.19.2022PlusDemographics.csv", stringsAsFactors = FALSE)
+
+data$subject_number <- 1:145
+data$study <- ifelse(data$subject_number< 98, "study1", "study2")
+
+demo <- read.csv("Y_Maze_Study_2019_Demographics.csv")
+data <- as.data.frame(data)
+
+study1 <- data[which(data$study=="study1"),]
+
+min(study1$Age_Months)
+mean(study1$Age_Months)
+max(study1$Age_Months)
+
+
+data$Age_MonthsMeanCentered <- data$Age_Months-mean(data$Age_Months) #This also works the same
+data$GENDERMeanCentered <- data$GENDER - mean(data$GENDER)
+
+
+
+
+study2 <- data[which(data$study=="study2"),]
+min(study2$Age_Months)
+mean(study2$Age_Months)
+max(study2$Age_Months)
+describe(study2$Age_Months)
+
+
+study2$Age_MonthsMeanCentered <- study2$Age_Months-mean(study2$Age_Months)
+study2$GENDERMeanCentered <- study2$GENDER - mean(study2$GENDER)
+
+#unique(study1$SUB_ID)
+study2$ExperimenterPercentScore <- study2$EXPERIMENTER_TOTALSCORE/5
+study2$ParentPercentScore <- study2$PARENT_TOTALSCORE/5
+meanDataLong <- read.csv("MeanDataLong.csv")
+
+#Turning Data into long version 
+study1_long <- gather(study1, key="Trial", value="Score", COND1_1:COND2_5)
+
+
+study1_long <- dplyr::mutate(study1_long,
+                         type = case_when(
+                           CONDITION == 0 & grepl('COND1', Trial) ~ 'E',
+                           CONDITION == 0 & grepl('COND2', Trial) ~ 'P',
+                           CONDITION == 1 & grepl('COND1', Trial) ~ 'P',
+                           CONDITION == 1 & grepl('COND2', Trial) ~ 'E'
+                         )) 
+
+study1_long <- dplyr::mutate(study1_long,
+                         TrialNumber = case_when(
+                           grepl('_1', Trial) ~ 1,
+                           grepl('_2', Trial) ~ 2,
+                           grepl('_3', Trial) ~ 3,
+                           grepl('_4', Trial) ~ 4,
+                           grepl('_5', Trial) ~ 5
+                           #grepl('_6', Trial) ~ 1,
+                           #grepl('_7', Trial) ~ 2,
+                           #grepl('_8', Trial) ~ 3,
+                           #grepl('_9', Trial) ~ 4,
+                           #grepl('_10', Trial) ~ 5
+                         )) 
+#                         )) %>% select(CONDITION, Trial, type, Score)
+
+names(study1_long)
+study1_long <- study1_long %>% drop_na(Score)
+
+study1_long$GENDERMeanCentered <- study1_long$GENDER - mean(study1_long$GENDER)
+study1_long$GENDERCoded <- ifelse(study1_long$GENDER == 0, -0.5, 0.5) 
+
+study1_long$Age_MonthsMeanCentered <- study1_long$Age_Months-mean(study1_long$Age_Months) #This also works the same 
+
+#length(study1_long$SUB_ID)/10
+#table(study1_long$SUB_ID)
+
+study1_exclude_subs <- (study1_long$SUB_ID) %in% c("HT005", "HT067", "HT068", "HT071", "HT085", "HT089", "HT094", "HT096") 
+study1_longNoNA <- study1_long[!study1_exclude_subs,]
+
+study1_exclude_subs_wide <- (study1$SUB_ID) %in% c("HT005", "HT067", "HT068", "HT071", "HT085", "HT089", "HT094", "HT096") 
+
+study1_NoNA <- study1[!study1_exclude_subs_wide,]
+
+study1_means_long <- gather(study1, key="CONDITION", value="Score", PARENT_TOTALSCORE:EXPERIMENTER_TOTALSCORE)
+study1_means_long$type <- ifelse(study1_means_long$CONDITION=="PARENT_TOTALSCORE", "P", "E")
+study1_means_long$Age_MonthsMeanCentered <- study1_means_long$Age_Months-mean(study1_means_long$Age_Months) 
+
+study1_longNoNA$Type <- ifelse(study1_longNoNA$type=="P", 0.5, -0.5)
+
+names(study1_longNoNA)
+
+study1$MomsLap
+study1$SwitchedToParentFirst
+table(study1$MomsLap, study1$SwitchedToParentFirst) #1 overlapping (both are indepdently 7)
+table(study1$MomsLap) #8 
+table(study1$SwitchedToParentFirst) # 
+
+study1_m1.5 <- glmer(Score~Type + 
+                GENDERCoded + 
+                Age_MonthsMeanCentered + 
+                Age_MonthsMeanCentered*Type + 
+                (Type|SUB_ID), 
+              data=study1_longNoNA, family=binomial)
+summary(study1_m1.5)
+coef(summary(study1_m1.5))
+
+#inv.logit(0.16213989) #Type E =-0.5 (not adding to intercept)
+#inv.logit(0.16213989+0.13664424) #Type P 
+#inv.logit(0.01658546) 
+#inv.logit(0.08849817) #interaction
+
+#inv.logit(-0.11347801) #gender
+
+
+study1_m1.5_withMom <- glmer(Score~Type + 
+                GENDERCoded + 
+                Age_MonthsMeanCentered + 
+                Age_MonthsMeanCentered*Type + 
+                MomsLap*Type + 
+                (Type|SUB_ID), 
+              data=study1_longNoNA, family=binomial)
+summary(study1_m1.5_withMom)
+coef(summary(study1_m1.5_withMom))
+
+
+study1_m1.5_withSwitch <- glmer(Score~Type + 
+                GENDERCoded + 
+                Age_MonthsMeanCentered + 
+                Age_MonthsMeanCentered*Type + 
+                SwitchedToParentFirst*Type + 
+                (Type|SUB_ID), 
+              data=study1_longNoNA, family=binomial)
+summary(study1_m1.5_withSwitch)
+coef(summary(study1_m1.5_withSwitch))
+
+
+#Testing for rating preferences 
+t.test(study1$ParentRatingPreference, study1$ExperimenterRatingPreference)
+
+
+study1_longNoNA$CONDITION_Coded <- ifelse(study1_longNoNA$CONDITION==0, -0.5, 0.5)
+study1_longNoNA$Gender_Parent_Coded <- ifelse(study1_longNoNA$GENDER_CAREGIVER==0, -0.5, 0.5)
+study1_longNoNA$InExperimenterClassCoded <- ifelse(study1_longNoNA$InExperimenterClass==0, -0.5, 0.5)
+table(study1_longNoNA$GENDER_CAREGIVER)
+
+study1_m2 <- glmer(Score~Type + 
+                GENDERCoded + 
+                CONDITION_Coded +
+                Gender_Parent_Coded +
+                InExperimenterClassCoded +
+                Age_MonthsMeanCentered + 
+                Age_MonthsMeanCentered*Type + 
+                (Type|SUB_ID), 
+              data=study1_longNoNA, family=binomial)
+summary(study1_m2)
+coef(summary(study1_m1.5))
+
+```
+
+
+```{r}
+########################## Study 2 
+
+study2_long <- gather(study2, key="Trial", value="Score", COND1_1:COND2_5)
+
+
+study2_long <- dplyr::mutate(study2_long,
+                         type = case_when(
+                           CONDITION == 0 & grepl('COND1', Trial) ~ 'E',
+                           CONDITION == 0 & grepl('COND2', Trial) ~ 'P',
+                           CONDITION == 1 & grepl('COND1', Trial) ~ 'P',
+                           CONDITION == 1 & grepl('COND2', Trial) ~ 'E'
+                         )) 
+
+study2_long <- dplyr::mutate(study2_long,
+                         TrialNumber = case_when(
+                           grepl('_1', Trial) ~ 1,
+                           grepl('_2', Trial) ~ 2,
+                           grepl('_3', Trial) ~ 3,
+                           grepl('_4', Trial) ~ 4,
+                           grepl('_5', Trial) ~ 5
+                           #grepl('_6', Trial) ~ 1,
+                           #grepl('_7', Trial) ~ 2,
+                           #grepl('_8', Trial) ~ 3,
+                           #grepl('_9', Trial) ~ 4,
+                           #grepl('_10', Trial) ~ 5
+                         )) 
+#                         )) %>% select(CONDITION, Trial, type, Score)
+
+library(tidyr)
+study2_long <- study2_long %>% drop_na(Score)
+
+study2_long$GENDERMeanCentered <- study2_long$GENDER - mean(study2_long$GENDER)
+study2_long$GENDERCoded <- ifelse(study2_long$GENDER == 0, -0.5, 0.5) 
+
+study2_long$Age_MonthsMeanCentered <- study2_long$Age_Months-mean(study2_long$Age_Months) #This also works the same 
+
+#length(study2_long$SUB_ID)/10
+#table(study2_long$SUB_ID)
+
+study2_exclude_subs <- (study2_long$SUB_ID) %in% c("HT111", "HT123", "HT128", "HT131") 
+study2_longNoNA <- study2_long[!study2_exclude_subs,]
+
+
+table(study2_longNoNA$MomsLap)
+table(study2_longNoNA$SwitchedToParentFirst)
+
+table(study2_longNoNA$MomsLap, study2_longNoNA$SwitchedToParentFirst)
+
+
+#Analyses
+study2_longNoNA$Type <- ifelse(study2_longNoNA$type=="P", 0.5, -0.5)
+
+table(study2_longNoNA$ParentInteract)
+
+study2_m1.51 <- glmer(Score~Type + 
+                     Age_MonthsMeanCentered + 
+                     GENDERCoded +
+                     Age_MonthsMeanCentered*Type +
+                 (Type|SUB_ID), 
+               data=study2_longNoNA, family=binomial)
+summary(study2_m1.51)
+#inv.logit(-0.09697)
+#inv.logit(0.21683)
+
+
+
+study2_m1.51Mom <- glmer(Score~Type + 
+                     Age_MonthsMeanCentered + 
+                     GENDERCoded +
+                     Age_MonthsMeanCentered*Type +
+                       MomsLap*Type+
+                 (Type|SUB_ID), 
+               data=study2_longNoNA, family=binomial)
+summary(study2_m1.51Mom)
+
+study2_m1.51Switch <- glmer(Score~Type + 
+                     Age_MonthsMeanCentered + 
+                     GENDERCoded +
+                     Age_MonthsMeanCentered*Type +
+                       SwitchedToParentFirst*Type+
+                 (Type|SUB_ID), 
+               data=study2_longNoNA, family=binomial)
+summary(study2_m1.51Switch)
+
+study2_longNoNA$CONDITION_Coded <- ifelse(study2_longNoNA$CONDITION==0, -0.5, 0.5)
+study2_longNoNA$Gender_Parent_Coded <- ifelse(study2_longNoNA$GENDER_CAREGIVER==0, -0.5, 0.5)
+study2_longNoNA$InExperimenterClassCoded <- ifelse(study2_longNoNA$InExperimenterClass==0, -0.5, 0.5)
+table(study2_longNoNA$GENDER_CAREGIVER)
+
+#Adding all the variables to study 1finding  - we get sig gender of parent 
+study2_m3 <- glmer(Score~Type + 
+                 GENDERCoded + 
+                 Age_MonthsMeanCentered + 
+#                 Age_MonthsMeanCentered*Type + 
+                 Gender_Parent_Coded + 
+                 InExperimenterClassCoded +
+                 CONDITION_Coded+
+                 (Type|SUB_ID), 
+               data=study2_longNoNA, family=binomial)
+
+#summary(study2_m3)
+#inv.logit(0.91301)
+
+
+
+study2_m4.5 <- glmer(Score~Type + 
+                     CONDITION+
+                       Type*CONDITION+
+                       Age_MonthsMeanCentered + 
+                       GENDERCoded +
+                 (Type|SUB_ID), 
+               data=study2_longNoNA, family=binomial)
+summary(study2_m4.5)
+
+
+
+
+study2_m4.1 <- glmer(Score~Type + 
+                     CONDITION+
+                       Type*CONDITION+
+                       Age_MonthsMeanCentered + 
+                       Gender_Parent_Coded + 
+                       InExperimenterClassCoded +
+                       GENDERCoded +
+                 (Type|SUB_ID), 
+               data=study2_longNoNA, family=binomial)
+summary(study2_m4.1)
+
+
+study2_m4.1Mom <- glmer(Score~Type + 
+                     CONDITION+
+                       Type*CONDITION+
+                       Age_MonthsMeanCentered + 
+                       Gender_Parent_Coded + 
+                       InExperimenterClassCoded +
+                       MomsLap*Type + 
+                       GENDERCoded +
+                 (Type|SUB_ID), 
+               data=study2_longNoNA, family=binomial)
+summary(study2_m4.1Mom)
+
+names(study2_longNoNA)
+
+study2_m4.1Switch <- glmer(Score~Type + 
+                     CONDITION+
+                       Type*CONDITION+
+                       Age_MonthsMeanCentered + 
+                       Gender_Parent_Coded + 
+                       InExperimenterClassCoded +
+                       SwitchedToParentFirst*Type +
+                       GENDERCoded +
+                 (Type|SUB_ID), 
+               data=study2_longNoNA, family=binomial)
+summary(study2_m4.1Switch)
+
+
+study2_m4.1ParentInteract <- glmer(Score~Type + 
+                     CONDITION+
+                       Type*CONDITION+
+                       Age_MonthsMeanCentered + 
+                       Gender_Parent_Coded + 
+                       InExperimenterClassCoded +
+                       ParentInteract*Type +
+                       GENDERCoded +
+                 (Type|SUB_ID), 
+               data=study2_longNoNA, family=binomial)
+summary(study2_m4.1ParentInteract)
+
+inv.logit(0.91993)
+
+
+
+
+inv.logit(-0.96512)    
+inv.logit(0.69445)  #Type P (not adding to intercept)
+inv.logit(0.09804)
+
+inv.logit(0.91318) #gender
+
+```
+
+
+```
+
